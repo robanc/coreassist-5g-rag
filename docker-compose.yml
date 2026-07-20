@@ -1,0 +1,21 @@
+services:
+  postgres:
+    image: pgvector/pgvector:pg17
+    container_name: coreassist-postgres
+    environment:
+      POSTGRES_DB: coreassist
+      POSTGRES_USER: coreassist
+      POSTGRES_PASSWORD: coreassist
+    ports:
+      - "5432:5432"
+    volumes:
+      - coreassist_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U coreassist -d coreassist"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
+volumes:
+  coreassist_postgres_data:
