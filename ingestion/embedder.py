@@ -1,10 +1,15 @@
 import json
+from functools import lru_cache
 from pathlib import Path
 
 from sentence_transformers import SentenceTransformer
 
+from config import EMBEDDING_MODEL
 
-MODEL_NAME = "sentence-transformers/all-MiniLM-L6-v2"
+
+@lru_cache(maxsize=1)
+def get_embedding_model() -> SentenceTransformer:
+    return SentenceTransformer(EMBEDDING_MODEL)
 
 
 def load_chunks(file_path: str | Path) -> list[dict]:
@@ -17,15 +22,21 @@ def load_chunks(file_path: str | Path) -> list[dict]:
         return json.load(file)
 
 
+def build_embedding_text(chunk: dict) -> str:
+    return (
+        f"Section {chunk['section']}: {chunk['title']}\n"
+        f"{chunk['text']}"
+    )
+
+
 def generate_embeddings(
     chunks: list[dict],
-    model_name: str = MODEL_NAME,
 ) -> list[list[float]]:
-    model = SentenceTransformer(model_name)
+    model = get_embedding_model()
 
     texts = [
-    f"Section {chunk['section']}: {chunk['title']}\n{chunk['text']}"
-    for chunk in chunks
+        build_embedding_text(chunk)
+        for chunk in chunks
     ]
 
     embeddings = model.encode(
@@ -38,13 +49,24 @@ def generate_embeddings(
     return embeddings.tolist()
 
 
+def embed_query(query: str) -> list[float]:
+    model = get_embedding_model()
+
+    embedding = model.encode(
+        query,
+        normalize_embeddings=True,
+    )
+
+    return embedding.tolist()
+
+
 def main() -> None:
     chunk_path = Path("data/processed/ts23501_chunks.json")
 
     chunks = load_chunks(chunk_path)
 
     print(f"Chunks loaded: {len(chunks)}")
-    print(f"Embedding model: {MODEL_NAME}")
+    print(f"Embedding model: {EMBEDDING_MODEL}")
 
     embeddings = generate_embeddings(chunks)
 

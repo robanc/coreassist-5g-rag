@@ -1,19 +1,11 @@
 import json
-import os
 from pathlib import Path
 
-import psycopg
-from pgvector.psycopg import register_vector
-
+from database.connection import get_connection
 from ingestion.embedder import generate_embeddings, load_chunks
 
 
 CHUNK_PATH = Path("data/processed/ts23501_chunks.json")
-
-DATABASE_URL = os.getenv(
-    "DATABASE_URL",
-    "postgresql://coreassist:coreassist@localhost:5432/coreassist",
-)
 
 
 def main() -> None:
@@ -44,9 +36,7 @@ def main() -> None:
             )
         )
 
-    with psycopg.connect(DATABASE_URL) as connection:
-        register_vector(connection)
-
+    with get_connection() as connection:
         with connection.cursor() as cursor:
             cursor.execute(
                 """
@@ -70,8 +60,6 @@ def main() -> None:
                 """,
                 rows,
             )
-
-        connection.commit()
 
     print(f"Rows inserted: {len(rows)}")
 

@@ -1,11 +1,11 @@
-import os
+from functools import lru_cache
+from typing import Any
 
 from openai import OpenAI
 
+from config import OPENAI_API_KEY, OPENAI_MODEL, RETRIEVAL_LIMIT
 from retrieval.search import search_documents
 
-
-MODEL_NAME = os.getenv("OPENAI_MODEL", "gpt-4o-mini")
 
 SYSTEM_PROMPT = """
 You are CoreAssist, a 5G Packet Core engineering assistant.
@@ -21,7 +21,18 @@ Rules:
 """.strip()
 
 
-def build_context(results: list[dict]) -> str:
+@lru_cache(maxsize=1)
+def get_openai_client() -> OpenAI:
+    if not OPENAI_API_KEY:
+        raise RuntimeError(
+            "OPENAI_API_KEY is not configured. "
+            "Add it to your .env file."
+        )
+
+    return OpenAI(api_key=OPENAI_API_KEY)
+
+
+def build_context(results: list[dict[str, Any]]) -> str:
     context_blocks = []
 
     for result in results:
@@ -43,15 +54,25 @@ def build_context(results: list[dict]) -> str:
 
 def answer_question(
     question: str,
-    limit: int = 5,
-) -> dict:
+    limit: int = RETRIEVAL_LIMIT,
+) -> dict[str, Any]:
     results = search_documents(question, limit=limit)
-    context = build_context(results)
 
-    client = OpenAI()
+    if not results:
+        return {
+            "question": question,
+            "answer": (
+                "I could not find relevant excerpts in the indexed "
+                "3GPP TS 23.501 content."
+            ),
+            "sources": [],
+        }
+
+    context = build_context(results)
+    client = get_openai_client()
 
     response = client.chat.completions.create(
-        model=MODEL_NAME,
+        model=OPENAI_MODEL,
         temperature=0,
         messages=[
             {
@@ -70,6 +91,9 @@ def answer_question(
 
     answer = response.choices[0].message.content
 
+    if not answer:
+        answer = "The model did not return an answer."
+
     return {
         "question": question,
         "answer": answer,
@@ -87,6 +111,10 @@ def main() -> None:
     print(result["answer"])
 
     print("\nRetrieved sources:")
+
+    if not result["sources"]:
+        print("- No sources retrieved")
+        return
 
     for source in result["sources"]:
         print(

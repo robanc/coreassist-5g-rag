@@ -1,48 +1,39 @@
-import os
+from typing import Any
 
-import psycopg
-from pgvector.psycopg import register_vector
-from sentence_transformers import SentenceTransformer
+from pgvector import Vector
+from psycopg.rows import dict_row
+
+from config import RETRIEVAL_LIMIT
+from database.connection import get_connection
+from ingestion.embedder import embed_query
 
 
-MODEL_NAME = "sentence-transformers/all-MiniLM-L6-v2"
-
-DATABASE_URL = os.getenv(
-    "DATABASE_URL",
-    "postgresql://coreassist:coreassist@localhost:5432/coreassist",
-)
+SEARCH_SQL = """
+SELECT
+    id,
+    source,
+    title,
+    section,
+    content,
+    metadata,
+    1 - (embedding <=> %s) AS score
+FROM documents
+WHERE embedding IS NOT NULL
+ORDER BY embedding <=> %s
+LIMIT %s
+"""
 
 
 def search_documents(
     query: str,
-    limit: int = 5,
-) -> list[dict]:
-    model = SentenceTransformer(MODEL_NAME)
+    limit: int = RETRIEVAL_LIMIT,
+) -> list[dict[str, Any]]:
+    query_embedding = Vector(embed_query(query))
 
-    query_embedding = model.encode(
-        query,
-        normalize_embeddings=True,
-    )
-
-    with psycopg.connect(DATABASE_URL) as connection:
-        register_vector(connection)
-
-        with connection.cursor() as cursor:
+    with get_connection() as connection:
+        with connection.cursor(row_factory=dict_row) as cursor:
             cursor.execute(
-                """
-                SELECT
-                    id,
-                    source,
-                    title,
-                    section,
-                    content,
-                    metadata,
-                    1 - (embedding <=> %s) AS score
-                FROM documents
-                WHERE embedding IS NOT NULL
-                ORDER BY embedding <=> %s
-                LIMIT %s
-                """,
+                SEARCH_SQL,
                 (
                     query_embedding,
                     query_embedding,
@@ -50,26 +41,12 @@ def search_documents(
                 ),
             )
 
-            rows = cursor.fetchall()
-
-    return [
-        {
-            "id": row[0],
-            "source": row[1],
-            "title": row[2],
-            "section": row[3],
-            "content": row[4],
-            "metadata": row[5],
-            "score": float(row[6]),
-        }
-        for row in rows
-    ]
+            return list(cursor.fetchall())
 
 
 def main() -> None:
     query = "What is the role of the AMF?"
-
-    results = search_documents(query, limit=5)
+    results = search_documents(query)
 
     print(f"\nQuery: {query}\n")
 
@@ -78,7 +55,7 @@ def main() -> None:
         print(f"Score: {result['score']:.4f}")
         print(f"Section: {result['section']}")
         print(f"Title: {result['title']}")
-        print(result["content"][:500])
+        print(result["content"])
         print("-" * 80)
 
 
