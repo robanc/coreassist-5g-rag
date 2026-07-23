@@ -4,8 +4,7 @@ from typing import Any
 from openai import OpenAI
 
 from config import OPENAI_API_KEY, OPENAI_MODEL, RETRIEVAL_LIMIT
-from rag.reranker import rerank_results
-from retrieval.search import search_documents
+from retrieval.reranker import search_and_rerank
 
 
 SYSTEM_PROMPT = """
@@ -48,7 +47,10 @@ def get_openai_client() -> OpenAI:
 
 
 def build_context(results: list[dict[str, Any]]) -> str:
-    context_blocks = []
+    """
+    Convert reranked chunks into a structured context block for the LLM.
+    """
+    context_blocks: list[str] = []
 
     for result in results:
         context_blocks.append(
@@ -57,10 +59,13 @@ def build_context(results: list[dict[str, Any]]) -> str:
                     f"Section: {result['section']}",
                     f"Title: {result['title']}",
                     f"Source: {result['source']}",
-                    f"Vector similarity score: {result['score']:.4f}",
+                    (
+                        f"Vector score: "
+                        f"{result['vector_score']:.6f}"
+                    ),
                     (
                         f"Rerank score: "
-                        f"{result.get('rerank_score', result['score']):.4f}"
+                        f"{result['rerank_score']:.6f}"
                     ),
                     "Content:",
                     result["content"],
@@ -75,6 +80,9 @@ def rewrite_question(
     question: str,
     conversation_history: list[dict[str, str]] | None = None,
 ) -> str:
+    """
+    Rewrite a conversational follow-up into a standalone retrieval query.
+    """
     if not conversation_history:
         return question
 
@@ -115,6 +123,10 @@ def answer_question(
     limit: int = RETRIEVAL_LIMIT,
     conversation_history: list[dict[str, str]] | None = None,
 ) -> dict[str, Any]:
+    """
+    Rewrite the question, retrieve candidate chunks using vector search,
+    rerank them with a cross-encoder, and generate a grounded answer.
+    """
     standalone_question = rewrite_question(
         question=question,
         conversation_history=conversation_history,
@@ -123,14 +135,13 @@ def answer_question(
     print(f"\nOriginal question:  {question}")
     print(f"Rewritten question: {standalone_question}\n")
 
-    candidate_limit = max(limit * 2, 10)
-
-    candidate_results = search_documents(
-        standalone_question,
-        limit=candidate_limit,
+    results = search_and_rerank(
+        query=standalone_question,
+        limit=limit,
+        candidate_limit=30,
     )
 
-    if not candidate_results:
+    if not results:
         return {
             "question": question,
             "standalone_question": standalone_question,
@@ -141,20 +152,14 @@ def answer_question(
             "sources": [],
         }
 
-    results = rerank_results(
-        question=standalone_question,
-        results=candidate_results,
-        top_k=limit,
-    )
-
     print("Top reranked results:")
 
     for result in results:
         print(
-            f"{result['rerank_score']:.4f} | "
+            f"{result['rerank_score']:.6f} | "
             f"{result['section']} | "
             f"{result['title']} | "
-            f"vector={result['score']:.4f}"
+            f"vector_score={result['vector_score']:.6f}"
         )
 
     print()
@@ -209,7 +214,10 @@ def main() -> None:
     result = answer_question(question)
 
     print(f"\nQuestion:\n{result['question']}\n")
-    print(f"Retrieval question:\n{result['standalone_question']}\n")
+    print(
+        "Retrieval question:\n"
+        f"{result['standalone_question']}\n"
+    )
 
     print("Answer:")
     print(result["answer"])
@@ -224,8 +232,8 @@ def main() -> None:
         print(
             f"- Section {source['section']}: "
             f"{source['title']} "
-            f"(vector={source['score']:.4f}, "
-            f"rerank={source.get('rerank_score', source['score']):.4f})"
+            f"(rerank={source['rerank_score']:.6f}, "
+            f"vector={source['vector_score']:.6f})"
         )
 
 
