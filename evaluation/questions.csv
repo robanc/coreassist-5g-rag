@@ -1,0 +1,21 @@
+question,expected_section,category
+What is the role of the AMF?,6.2.1,network-functions
+What are the functions of the SMF?,6.2.2,network-functions
+What is the role of the UPF?,6.2.3,network-functions
+What are the functions of the UDM?,6.2.7,network-functions
+What is the role of the NRF?,6.2.6,network-functions
+What is the function of the PCF?,6.2.4,network-functions
+What is the role of the AUSF?,6.2.8,network-functions
+What does the NSSF do?,6.2.14,network-functions
+How is an AMF selected?,6.3.5,selection
+How is an SMF selected?,6.3.2,selection
+What is registration management?,5.3.2,mobility
+What is connection management?,5.3.3,mobility
+How does mobility registration update work?,5.3.2,mobility
+What is a PDU Session?,5.6.1,session-management
+How is a PDU Session established?,5.6,session-management
+What is network slicing?,5.15,network-slicing
+What is an S-NSSAI?,5.15.2,network-slicing
+How does roaming work in the 5G System?,5.34.2.3,roaming
+What is service-based architecture?,4.2.3,architecture
+What are the main 5G System architecture principles?,4.2,architecture

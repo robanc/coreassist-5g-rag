@@ -1,0 +1,8 @@
+{
+  "evaluated_at": "2026-07-23T17:00:42.887200+00:00",
+  "number_of_questions": 20,
+  "hit_rate_at_1": 0.65,
+  "hit_rate_at_3": 0.9,
+  "hit_rate_at_5": 1.0,
+  "mean_reciprocal_rank": 0.77
+}
