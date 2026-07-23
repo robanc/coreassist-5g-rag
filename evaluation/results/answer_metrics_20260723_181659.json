@@ -1,0 +1,12 @@
+{
+  "evaluated_at": "2026-07-23T18:16:59.086133+00:00",
+  "number_of_questions": 20,
+  "average_correctness": 4.0,
+  "average_groundedness": 4.0,
+  "average_relevance": 4.3,
+  "average_completeness": 4.0,
+  "overall_average_score": 4.075,
+  "passing_threshold": 4.0,
+  "passing_questions": 20,
+  "pass_rate": 1.0
+}

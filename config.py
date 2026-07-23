@@ -27,3 +27,8 @@ EMBEDDING_MODEL = os.getenv(
 )
 
 RETRIEVAL_LIMIT = int(os.getenv("RETRIEVAL_LIMIT", "5"))
+
+OPENAI_JUDGE_MODEL = os.getenv(
+    "OPENAI_JUDGE_MODEL",
+    OPENAI_MODEL,
+)
