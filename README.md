@@ -141,27 +141,27 @@ CoreAssist follows a modular Retrieval-Augmented Generation (RAG) architecture t
 
 ```mermaid
 flowchart TD
-    A[User] --> B[Streamlit UI]
+    A["User"] --> B["Streamlit UI"]
 
-    B --> C[Conversation Memory]
-    C --> D[Query Rewriter]
+    B --> C["Conversation Memory"]
+    C --> D["Query Rewriter"]
 
-    D --> E[Embedding Model<br/>all-MiniLM-L6-v2]
-    E --> F[(PostgreSQL + pgvector)]
+    D --> E["Embedding Model<br>all-MiniLM-L6-v2"]
+    E --> F[("PostgreSQL + pgvector")]
 
-    F --> G[Top-k Retrieved Chunks]
-    G --> H[Cross-Encoder Reranker<br/>BAAI/bge-reranker-base]
+    F --> G["Top-k Retrieved Chunks"]
+    G --> H["Cross-Encoder Reranker<br>BAAI/bge-reranker-base"]
 
-    H --> I[Top Ranked Context]
-    I --> J[OpenAI GPT-4o-mini]
+    H --> I["Top-Ranked Context"]
+    I --> J["OpenAI GPT-4o-mini"]
 
-    J --> K[Final Answer]
+    J --> K["Final Answer"]
     K --> B
 
-    J --> L[(Monitoring Database)]
+    J --> L[("Monitoring Database")]
     B --> L
 
-    L --> M[Monitoring Dashboard]
+    L --> M["Monitoring Dashboard"]
 ```
 
 ### Pipeline Summary
