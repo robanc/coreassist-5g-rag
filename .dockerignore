@@ -1,0 +1,51 @@
+# Local Python environment
+.venv/
+venv/
+env/
+
+# Python cache and generated files
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Secrets
+.env
+.env.*
+!.env.example
+
+# Git
+.git/
+.gitignore
+.gitattributes
+
+# IDE and operating-system files
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Local caches
+.cache/
+.huggingface/
+
+# Logs
+*.log
+
+# Evaluation artifacts that are not required at runtime
+evaluation/results/*.csv
+evaluation/results/*.json
+
+# Optional local dashboards
+dashboards/grafana/
+
+# Documentation source is not required by the running application
+docs/
+
+# Docker files not needed inside the image
+docker-compose.yml
+Dockerfile

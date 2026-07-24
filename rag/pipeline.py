@@ -1,9 +1,11 @@
+import time
 from functools import lru_cache
 from typing import Any
 
 from openai import OpenAI
 
 from config import OPENAI_API_KEY, OPENAI_MODEL, RETRIEVAL_LIMIT
+from monitoring.metrics import log_request
 from monitoring.tracing import get_tracer
 from retrieval.reranker import search_and_rerank
 
@@ -128,8 +130,11 @@ def answer_question(
     conversation_history: list[dict[str, str]] | None = None,
 ) -> dict[str, Any]:
     """
-    Run the complete CoreAssist RAG pipeline inside an OpenTelemetry trace.
+    Run the complete CoreAssist RAG pipeline inside an OpenTelemetry trace
+    and persist request metrics for the monitoring dashboard.
     """
+    started_at = time.perf_counter()
+
     with tracer.start_as_current_span(
         "rag.answer_question"
     ) as span:
@@ -146,6 +151,10 @@ def answer_question(
             conversation_history=conversation_history,
         )
 
+        response_time_ms = (
+            time.perf_counter() - started_at
+        ) * 1000
+
         span.set_attribute(
             "rag.retrieved_document_count",
             len(result["sources"]),
@@ -154,6 +163,44 @@ def answer_question(
             "rag.answer_length",
             len(result["answer"]),
         )
+        span.set_attribute(
+            "rag.response_time_ms",
+            response_time_ms,
+        )
+
+        metrics = result.get("metrics", {})
+
+        request_id = log_request(
+            {
+                "question": question,
+                "standalone_question": result[
+                    "standalone_question"
+                ],
+                "model": OPENAI_MODEL,
+                "response_time_ms": response_time_ms,
+                "retrieved_documents": len(result["sources"]),
+                "top_rerank_score": metrics.get(
+                    "top_rerank_score"
+                ),
+                "top_vector_score": metrics.get(
+                    "top_vector_score"
+                ),
+                "prompt_tokens": metrics.get(
+                    "prompt_tokens"
+                ),
+                "completion_tokens": metrics.get(
+                    "completion_tokens"
+                ),
+                "total_tokens": metrics.get(
+                    "total_tokens"
+                ),
+                "context_length": metrics.get(
+                    "context_length"
+                ),
+            }
+        )
+
+        result["request_id"] = request_id
 
         return result
 
@@ -204,7 +251,10 @@ def _answer_question(
             candidate_limit=30,
         )
 
-        span.set_attribute("rag.result_count", len(results))
+        span.set_attribute(
+            "rag.result_count",
+            len(results),
+        )
 
         if results:
             span.set_attribute(
@@ -229,6 +279,14 @@ def _answer_question(
                 "3GPP TS 23.501 content."
             ),
             "sources": [],
+            "metrics": {
+                "top_rerank_score": None,
+                "top_vector_score": None,
+                "prompt_tokens": None,
+                "completion_tokens": None,
+                "total_tokens": None,
+                "context_length": 0,
+            },
         }
 
     print("Top reranked results:")
@@ -321,11 +379,43 @@ def _answer_question(
     if not answer:
         answer = "The model did not return an answer."
 
+    usage = response.usage
+
+    metrics = {
+        "top_rerank_score": (
+            float(results[0]["rerank_score"])
+            if results
+            else None
+        ),
+        "top_vector_score": (
+            float(results[0]["vector_score"])
+            if results
+            else None
+        ),
+        "prompt_tokens": (
+            usage.prompt_tokens
+            if usage
+            else None
+        ),
+        "completion_tokens": (
+            usage.completion_tokens
+            if usage
+            else None
+        ),
+        "total_tokens": (
+            usage.total_tokens
+            if usage
+            else None
+        ),
+        "context_length": len(context),
+    }
+
     return {
         "question": question,
         "standalone_question": standalone_question,
         "answer": answer,
         "sources": results,
+        "metrics": metrics,
     }
 
 
@@ -342,6 +432,11 @@ def main() -> None:
 
     print("Answer:")
     print(result["answer"])
+
+    print(
+        f"\nMonitoring request ID: "
+        f"{result.get('request_id', 'Not recorded')}"
+    )
 
     print("\nRetrieved sources:")
 

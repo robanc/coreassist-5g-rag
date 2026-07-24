@@ -2,20 +2,75 @@ services:
   postgres:
     image: pgvector/pgvector:pg17
     container_name: coreassist-postgres
+
     environment:
       POSTGRES_DB: coreassist
       POSTGRES_USER: coreassist
       POSTGRES_PASSWORD: coreassist
+
     ports:
       - "5432:5432"
+
     volumes:
       - coreassist_postgres_data:/var/lib/postgresql/data
+
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U coreassist -d coreassist"]
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -U coreassist -d coreassist",
+        ]
       interval: 5s
       timeout: 5s
       retries: 10
+
     restart: unless-stopped
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+
+    container_name: coreassist-app
+
+    env_file:
+      - .env
+
+    environment:
+      # Inside Docker, use the Compose service name "postgres",
+      # not localhost.
+      DATABASE_URL: postgresql://coreassist:coreassist@postgres:5432/coreassist
+
+      OPENAI_MODEL: ${OPENAI_MODEL:-gpt-4o-mini}
+      EMBEDDING_MODEL: ${EMBEDDING_MODEL:-sentence-transformers/all-MiniLM-L6-v2}
+      RETRIEVAL_LIMIT: ${RETRIEVAL_LIMIT:-5}
+
+      # Cache Hugging Face models across container restarts.
+      HF_HOME: /root/.cache/huggingface
+
+    ports:
+      - "8501:8501"
+
+    volumes:
+      - coreassist_huggingface_cache:/root/.cache/huggingface
+
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+    command:
+      - /bin/sh
+      - -c
+      - |
+        python -m scripts.create_monitoring_tables &&
+        streamlit run app/CoreAssist.py \
+          --server.address=0.0.0.0 \
+          --server.port=8501 \
+          --server.headless=true
+
+    restart: unless-stopped
+
 
 volumes:
   coreassist_postgres_data:
+  coreassist_huggingface_cache:

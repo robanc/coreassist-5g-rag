@@ -8,6 +8,7 @@ import streamlit as st
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(PROJECT_ROOT))
 
+from monitoring.metrics import save_feedback
 from rag.pipeline import answer_question
 
 
@@ -47,6 +48,19 @@ st.markdown(
             color: #6b7280;
         }
 
+        .feedback-title {
+            font-size: 0.9rem;
+            font-weight: 600;
+            margin-top: 1rem;
+            margin-bottom: 0.25rem;
+        }
+
+        .feedback-saved {
+            font-size: 0.85rem;
+            color: #16a34a;
+            margin-top: 0.75rem;
+        }
+
         .footer {
             margin-top: 3rem;
             padding-top: 1rem;
@@ -71,15 +85,23 @@ if "messages" not in st.session_state:
 if "pending_question" not in st.session_state:
     st.session_state.pending_question = None
 
+if "submitted_feedback" not in st.session_state:
+    st.session_state.submitted_feedback = {}
+
 
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
 
 def clear_chat() -> None:
-    """Clear the current conversation."""
+    """
+    Clear the current conversation and local feedback state.
+
+    Previously submitted feedback remains stored in PostgreSQL.
+    """
     st.session_state.messages = []
     st.session_state.pending_question = None
+    st.session_state.submitted_feedback = {}
 
 
 def select_example(question: str) -> None:
@@ -87,7 +109,9 @@ def select_example(question: str) -> None:
     st.session_state.pending_question = question
 
 
-def get_source_score(source: dict[str, Any]) -> tuple[str, float | None]:
+def get_source_score(
+    source: dict[str, Any],
+) -> tuple[str, float | None]:
     """
     Return the most useful score available in a retrieved source.
 
@@ -102,6 +126,7 @@ def get_source_score(source: dict[str, Any]) -> tuple[str, float | None]:
 
     for label, field in score_fields:
         value = source.get(field)
+
         if isinstance(value, (int, float)):
             return label, float(value)
 
@@ -120,11 +145,16 @@ def render_sources(sources: list[dict[str, Any]]) -> None:
         for index, source in enumerate(sources, start=1):
             section = source.get("section", "Unknown section")
             title = source.get("title", "Untitled section")
-            content = source.get("content", "No excerpt available.")
+            content = source.get(
+                "content",
+                "No excerpt available.",
+            )
 
             score_label, score = get_source_score(source)
 
-            st.markdown(f"#### {index}. §{section} — {title}")
+            st.markdown(
+                f"#### {index}. §{section} — {title}"
+            )
 
             if score is not None:
                 st.markdown(
@@ -140,15 +170,120 @@ def render_sources(sources: list[dict[str, Any]]) -> None:
                 st.divider()
 
 
-def render_message(message: dict[str, Any]) -> None:
+def render_feedback(
+    message: dict[str, Any],
+    message_index: int,
+) -> None:
+    """
+    Render a feedback form for an assistant response.
+
+    Feedback is linked to the request row created by the RAG pipeline.
+    """
+    request_id = message.get("request_id")
+
+    if not isinstance(request_id, int):
+        return
+
+    submitted_feedback = st.session_state.submitted_feedback
+
+    if request_id in submitted_feedback:
+        feedback_label = submitted_feedback[request_id]
+
+        st.markdown(
+            (
+                '<div class="feedback-saved">'
+                f"✓ Feedback saved: {feedback_label}"
+                "</div>"
+            ),
+            unsafe_allow_html=True,
+        )
+        return
+
+    st.markdown(
+        '<div class="feedback-title">'
+        "Was this answer helpful?"
+        "</div>",
+        unsafe_allow_html=True,
+    )
+
+    form_key = (
+        f"feedback_form_{request_id}_{message_index}"
+    )
+
+    with st.form(form_key, clear_on_submit=False):
+        rating = st.radio(
+            "Answer rating",
+            options=(
+                "👍 Helpful",
+                "👎 Not helpful",
+            ),
+            horizontal=True,
+            label_visibility="collapsed",
+            key=(
+                f"feedback_rating_"
+                f"{request_id}_{message_index}"
+            ),
+        )
+
+        comments = st.text_area(
+            "Optional comments",
+            placeholder=(
+                "Tell us what was useful or what could "
+                "be improved."
+            ),
+            height=80,
+            key=(
+                f"feedback_comments_"
+                f"{request_id}_{message_index}"
+            ),
+        )
+
+        submitted = st.form_submit_button(
+            "Submit feedback",
+            use_container_width=False,
+        )
+
+    if submitted:
+        helpful = rating == "👍 Helpful"
+
+        try:
+            save_feedback(
+                request_id=request_id,
+                helpful=helpful,
+                comments=comments.strip() or None,
+            )
+        except Exception as exc:
+            st.error(
+                "The feedback could not be saved. "
+                f"Details: {exc}"
+            )
+            return
+
+        st.session_state.submitted_feedback[
+            request_id
+        ] = rating
+
+        st.success("Thank you. Your feedback was saved.")
+        st.rerun()
+
+
+def render_message(
+    message: dict[str, Any],
+    message_index: int,
+) -> None:
     """Render a saved chat message."""
-    avatar = "👤" if message["role"] == "user" else "📡"
+    role = message.get("role", "assistant")
+    avatar = "👤" if role == "user" else "📡"
 
-    with st.chat_message(message["role"], avatar=avatar):
-        st.markdown(message["content"])
+    with st.chat_message(role, avatar=avatar):
+        st.markdown(message.get("content", ""))
 
-        if message["role"] == "assistant":
+        if role == "assistant":
             render_sources(message.get("sources", []))
+            render_feedback(
+                message=message,
+                message_index=message_index,
+            )
 
 
 def process_question(question: str) -> None:
@@ -159,12 +294,14 @@ def process_question(question: str) -> None:
             "content": message["content"],
         }
         for message in st.session_state.messages[-6:]
+        if message.get("role") in {"user", "assistant"}
     ]
 
     user_message = {
         "role": "user",
         "content": question,
     }
+
     st.session_state.messages.append(user_message)
 
     with st.chat_message("user", avatar="👤"):
@@ -193,6 +330,7 @@ def process_question(question: str) -> None:
                         "role": "assistant",
                         "content": error_message,
                         "sources": [],
+                        "request_id": None,
                     }
                 )
                 return
@@ -201,18 +339,31 @@ def process_question(question: str) -> None:
             "answer",
             "No answer was returned by the pipeline.",
         )
+
         sources = result.get("sources", [])
+        request_id = result.get("request_id")
 
-        st.markdown(answer)
-        render_sources(sources)
-
-    st.session_state.messages.append(
-        {
+        assistant_message = {
             "role": "assistant",
             "content": answer,
             "sources": sources,
+            "request_id": request_id,
         }
-    )
+
+        st.session_state.messages.append(
+            assistant_message
+        )
+
+        assistant_message_index = (
+            len(st.session_state.messages) - 1
+        )
+
+        st.markdown(answer)
+        render_sources(sources)
+        render_feedback(
+            message=assistant_message,
+            message_index=assistant_message_index,
+        )
 
 
 # ---------------------------------------------------------------------------
@@ -221,14 +372,17 @@ def process_question(question: str) -> None:
 
 with st.sidebar:
     st.title("📡 CoreAssist")
-    st.caption("AI engineering assistant for 5G Packet Core")
+    st.caption(
+        "AI engineering assistant for 5G Packet Core"
+    )
 
     st.divider()
 
     st.markdown("### About")
     st.write(
-        "CoreAssist answers technical questions using evidence retrieved "
-        "from the 3GPP system architecture specification."
+        "CoreAssist answers technical questions using evidence "
+        "retrieved from the 3GPP system architecture "
+        "specification."
     )
 
     st.markdown("### Knowledge base")
@@ -262,6 +416,7 @@ with st.sidebar:
         - all-MiniLM-L6-v2 embeddings
         - BGE cross-encoder reranker
         - OpenAI language model
+        - OpenTelemetry tracing
         - Streamlit
         """
     )
@@ -275,8 +430,9 @@ with st.sidebar:
     )
 
     st.caption(
-        "Responses should be verified against the official specification "
-        "before use in production engineering decisions."
+        "Responses should be verified against the official "
+        "specification before use in production engineering "
+        "decisions."
     )
 
 
@@ -285,18 +441,20 @@ with st.sidebar:
 # ---------------------------------------------------------------------------
 
 st.title("📡 CoreAssist")
+
 st.markdown(
     '<div class="hero-subtitle">'
-    "A retrieval-augmented 5G Packet Core engineering assistant grounded "
-    "in 3GPP TS 23.501 Release 19."
+    "A retrieval-augmented 5G Packet Core engineering "
+    "assistant grounded in 3GPP TS 23.501 Release 19."
     "</div>",
     unsafe_allow_html=True,
 )
 
 if not st.session_state.messages:
     st.info(
-        "Ask about 5G network functions, registration, mobility, sessions, "
-        "roaming, slicing, or other architecture topics."
+        "Ask about 5G network functions, registration, "
+        "mobility, sessions, roaming, slicing, or other "
+        "architecture topics."
     )
 
     st.markdown("### Example questions")
@@ -325,14 +483,22 @@ if not st.session_state.messages:
                 args=(example,),
             )
 
-for saved_message in st.session_state.messages:
-    render_message(saved_message)
+for message_index, saved_message in enumerate(
+    st.session_state.messages
+):
+    render_message(
+        message=saved_message,
+        message_index=message_index,
+    )
 
 typed_question = st.chat_input(
     "Ask a question about 3GPP TS 23.501..."
 )
 
-question = typed_question or st.session_state.pending_question
+question = (
+    typed_question
+    or st.session_state.pending_question
+)
 
 if question:
     st.session_state.pending_question = None
@@ -341,8 +507,9 @@ if question:
 st.markdown(
     """
     <div class="footer">
-        CoreAssist · Built with Streamlit, PostgreSQL, pgvector,
-        sentence-transformers, and OpenAI
+        CoreAssist · Built with Streamlit, PostgreSQL,
+        pgvector, sentence-transformers, OpenTelemetry,
+        and OpenAI
     </div>
     """,
     unsafe_allow_html=True,
