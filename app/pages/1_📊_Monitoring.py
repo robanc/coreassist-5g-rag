@@ -262,6 +262,39 @@ st.divider()
 
 
 # ---------------------------------------------------------------------------
+# Retrieval volume and context size
+# ---------------------------------------------------------------------------
+
+left_chart, right_chart = st.columns(2)
+
+with left_chart:
+    st.subheader("Retrieved Documents")
+
+    documents_chart = requests_df[
+        [
+            "created_at",
+            "retrieved_documents",
+        ]
+    ].set_index("created_at")
+
+    st.line_chart(documents_chart)
+
+with right_chart:
+    st.subheader("Context Length")
+
+    context_chart = requests_df[
+        [
+            "created_at",
+            "context_length",
+        ]
+    ].set_index("created_at")
+
+    st.line_chart(context_chart)
+
+st.divider()
+
+
+# ---------------------------------------------------------------------------
 # Recent requests
 # ---------------------------------------------------------------------------
 
