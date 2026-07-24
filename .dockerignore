@@ -43,8 +43,10 @@ evaluation/results/*.json
 # Optional local dashboards
 dashboards/grafana/
 
-# Documentation source is not required by the running application
-docs/
+# Ignore documentation except the source specification required for ingestion
+docs/*
+!docs/packet_core/
+!docs/packet_core/TS23501.docx
 
 # Docker files not needed inside the image
 docker-compose.yml
