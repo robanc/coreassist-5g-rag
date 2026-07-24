@@ -60,6 +60,7 @@ services:
       - -c
       - |
         python -m ingestion.init_db &&
+        python -m ingestion.store_embeddings &&
         python -m scripts.create_monitoring_tables &&
         streamlit run app/CoreAssist.py \
           --server.address=0.0.0.0 \
