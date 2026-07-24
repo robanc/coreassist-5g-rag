@@ -59,6 +59,7 @@ services:
       - /bin/sh
       - -c
       - |
+        python -m ingestion.export_chunks &&
         python -m ingestion.init_db &&
         python -m ingestion.store_embeddings &&
         python -m scripts.create_monitoring_tables &&
