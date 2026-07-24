@@ -1,7 +1,6 @@
 services:
   postgres:
     image: pgvector/pgvector:pg17
-    container_name: coreassist-postgres
 
     environment:
       POSTGRES_DB: coreassist
@@ -30,8 +29,6 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-
-    container_name: coreassist-app
 
     env_file:
       - .env
