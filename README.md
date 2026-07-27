@@ -19,6 +19,38 @@ Built with **Streamlit • PostgreSQL/pgvector • OpenAI GPT-4o-mini • Senten
 
 **Developed by Rolando Bancod**
 
+
+---
+
+# 📚 Table of Contents
+
+- [Overview](#-overview)
+- [Problem Description](#problem-description)
+- [Project Summary](#-project-summary)
+- [Project Highlights](#-project-highlights)
+- [Features](#-features)
+- [RAG Architecture Overview](#-rag-architecture-overview)
+- [System Architecture](#-system-architecture)
+- [Application Workflow](#-application-workflow)
+- [Technology Stack](#-technology-stack)
+- [Project Structure](#-project-structure)
+- [Evaluation](#-evaluation)
+- [Monitoring](#-monitoring)
+- [Reproducibility Guide](#-reproducibility-guide)
+- [Running with Docker](#-running-with-docker)
+- [Environment Variables](#-environment-variables)
+- [Local Development](#-local-development)
+- [Troubleshooting](#-troubleshooting)
+- [Example Questions](#-example-questions)
+- [Screenshots](#-screenshots)
+- [Future Improvements](#-future-improvements)
+- [Learning Objectives](#-learning-objectives)
+- [Contributing](#-contributing)
+- [References](#-references)
+- [Acknowledgements](#-acknowledgements)
+- [License](#-license)
+
+
 ---
 
 ## 📖 Overview
@@ -42,47 +74,63 @@ The project demonstrates an **end-to-end AI engineering workflow**, including:
 
 CoreAssist was developed as the capstone project for **LLM Zoomcamp (DataTalks.Club)** and showcases modern practices for building production-style Retrieval-Augmented Generation systems.
 
----
+## Problem Description
 
-# ⭐ Key Capabilities
+Modern 5G Packet Core engineers rely on extensive 3GPP technical specifications to design, integrate, troubleshoot, and validate network functions. These specifications often span hundreds of pages, making it difficult and time-consuming to locate relevant information quickly. Traditional keyword searches frequently return too many irrelevant results, while general-purpose LLMs may generate answers that are not grounded in the official standards.
 
-- 🔍 Semantic search using PostgreSQL + pgvector
-- 📚 Knowledge base built from **3GPP TS 23.501 Release 19**
-- 🤖 GPT-4o-mini answer generation
-- 🧠 Query rewriting using conversation history
-- 🎯 Cross-encoder reranking (BAAI/bge-reranker-base)
-- 💬 Multi-turn conversational interface
-- 📈 Retrieval evaluation (Hit@k, MRR)
-- 🧪 Automated LLM evaluation
-- 📊 Operational monitoring dashboard
-- 👍 User feedback analytics
-- 🐳 Docker deployment
-- ⚡ CPU-optimized inference pipeline
+CoreAssist addresses this challenge by combining a Retrieval-Augmented Generation (RAG) pipeline with a knowledge base built from the **3GPP TS 23.501 Release 19** specification. Instead of relying solely on the LLM's internal knowledge, CoreAssist retrieves the most relevant sections of the specification, reranks them using a cross-encoder model, and generates grounded, context-aware responses.
+
+By providing accurate, specification-based answers through an interactive interface, CoreAssist helps network engineers reduce the time spent searching documentation, improve troubleshooting efficiency, and increase confidence that responses are supported by the official 3GPP standard.
+
 
 ---
 
-# 📚 Table of Contents
 
-- [Features](#-features)
-- [Overview](#-overview)
-- [System Architecture](#-system-architecture)
-- [Application Workflow](#-application-workflow)
-- [Technology Stack](#-technology-stack)
-- [Project Structure](#-project-structure)
-- [Evaluation](#-evaluation)
-- [Monitoring](#-monitoring)
-- [Running with Docker](#-running-with-docker)
-- [Environment Variables](#-environment-variables)
-- [Local Development](#-local-development)
-- [Reproducibility Guide](#-reproducibility-guide)
-- [Troubleshooting](#-troubleshooting)
-- [Example Questions](#-example-questions)
-- [Screenshots](#-screenshots)
-- [Future Improvements](#-future-improvements)
-- [Acknowledgements](#-acknowledgements)
-- [License](#-license)
+## Project Summary
+
+CoreAssist is an end-to-end Retrieval-Augmented Generation (RAG) application that demonstrates the complete AI engineering workflow taught in the LLM Zoomcamp. The project combines automated document ingestion, semantic retrieval, cross-encoder reranking, LLM-powered answer generation, evaluation, monitoring, containerization, and reproducible deployment.
+
+The table below summarizes how CoreAssist satisfies the project evaluation criteria.
+
+| Evaluation Criteria | Implementation |
+|---------------------|----------------|
+| **Problem Description** | Clearly defines the challenges of searching large 3GPP specifications and explains how CoreAssist provides grounded, specification-based answers. |
+| **Retrieval Flow** | Implements a complete RAG pipeline using document chunking, vector embeddings, PostgreSQL + pgvector retrieval, cross-encoder reranking, and GPT-4o-mini for answer generation. |
+| **Retrieval Evaluation** | Evaluates multiple retrieval configurations using Hit@k and Mean Reciprocal Rank (MRR) to select the best-performing retrieval strategy. |
+| **LLM Evaluation** | Evaluates multiple prompting strategies using an LLM-as-a-Judge framework and selects the best-performing prompt based on answer quality. |
+| **Interface** | Interactive Streamlit web application with conversational chat interface and monitoring dashboard. |
+| **Automated Ingestion Pipeline** | Fully automated Python ingestion pipeline for loading, chunking, embedding, and storing the 3GPP specification into PostgreSQL. |
+| **Monitoring** | Collects user feedback, application metrics, retrieval metrics, and visualizes system performance through a monitoring dashboard. |
+| **Containerization** | Complete Docker Compose deployment including PostgreSQL and the Streamlit application with automatic initialization. |
+| **Reproducibility** | Comprehensive setup instructions, Docker deployment, local development workflow, dependency management using `uv`, and reproducible project structure. |
+| **Document Re-ranking** | Uses the **BAAI/bge-reranker-base** cross-encoder model to improve retrieval accuracy before LLM generation. |
+| **User Query Rewriting** | Rewrites user queries to improve semantic retrieval and increase answer relevance. |
 
 ---
+
+
+# 🌟 Project Highlights
+
+CoreAssist demonstrates a complete Retrieval-Augmented Generation (RAG) workflow for technical question answering using the official **3GPP TS 23.501 Release 19** specification.
+
+### Highlights
+
+- ✅ End-to-end Retrieval-Augmented Generation (RAG) pipeline
+- ✅ Semantic search using PostgreSQL + pgvector
+- ✅ Knowledge base built from **3GPP TS 23.501 Release 19**
+- ✅ Cross-encoder reranking for improved retrieval accuracy
+- ✅ GPT-4o-mini answer generation
+- ✅ Query rewriting using conversation history
+- ✅ Multi-turn conversational interface
+- ✅ Retrieval evaluation (Hit@k, MRR)
+- ✅ Automated LLM evaluation
+- ✅ OpenTelemetry monitoring
+- ✅ Operational monitoring dashboard
+- ✅ User feedback analytics
+- ✅ Docker deployment
+- ✅ Reproducible local and Docker execution
+- ✅ CPU-optimized inference pipeline
+
 
 # ✨ Features
 
@@ -124,7 +172,7 @@ CoreAssist was developed as the capstone project for **LLM Zoomcamp (DataTalks.C
 
 ---
 
-# 📖 Overview
+# 📖 RAG Architecture Overview
 
 Large Language Models perform exceptionally well on general knowledge but may hallucinate or overlook important details when answering questions in specialized technical domains.
 
@@ -298,7 +346,7 @@ CoreAssist was evaluated using both **retrieval metrics** and **LLM-based answer
 
 ## Retrieval Evaluation
 
-The retrieval pipeline was evaluated using a curated dataset of telecom-related questions against the **3GPP TS 23.501 Release 19** knowledge base.
+Multiple retrieval configurations were evaluated using Hit@k and Mean Reciprocal Rank (MRR). The best-performing retrieval pipeline was selected for the final application.
 
 ### Retrieval Metrics
 
@@ -322,7 +370,7 @@ These results demonstrate that the retrieval pipeline consistently identifies re
 
 ## LLM Evaluation
 
-Generated responses were evaluated using an automated **LLM-as-a-Judge** approach against a curated evaluation dataset.
+Multiple prompting strategies were evaluated using an LLM-as-a-Judge framework. The highest-performing prompt configuration was selected for the final application.
 
 ### Overall Score
 
@@ -396,15 +444,72 @@ Monitoring metrics are collected automatically for every request and visualized 
 
 The monitoring dashboard provides visibility into application behavior and system performance.
 
-Example dashboard metrics include:
+The monitoring dashboard includes six operational charts that visualize application performance, retrieval quality, and user interactions.
 
-- Average response latency
-- Average retrieved documents
-- Average context length
-- Helpful response percentage
-- Total requests processed
+- Response Time
+- Token Usage
+- Retrieval Quality
+- User Feedback
+- Retrieved Documents
+- Context Length
 
 This information helps evaluate retrieval quality, monitor system health, and identify opportunities for future optimization.
+
+
+---
+
+# 🚀 Reproducibility Guide
+
+CoreAssist was designed to be reproducible across multiple development environments. The project supports both a fully containerized Docker deployment and a native local development workflow.
+
+Two installation methods are provided:
+
+### Option 1 – Docker Deployment (Recommended)
+
+The Docker deployment automatically:
+
+- Creates the PostgreSQL database
+- Generates document chunks
+- Creates vector embeddings
+- Loads the knowledge base
+- Creates monitoring tables
+- Starts the Streamlit application
+
+See the **Running with Docker** section for detailed instructions.
+
+### Option 2 – Local Development
+
+For development and debugging, CoreAssist can also be run locally while using PostgreSQL in Docker.
+
+The local workflow includes:
+
+- Installing dependencies with `uv`
+- Starting PostgreSQL
+- Generating document chunks
+- Initializing the database
+- Creating embeddings
+- Creating monitoring tables
+- Running the Streamlit application locally
+
+See the **Local Development** section for detailed instructions.
+
+---
+
+## Validation
+
+The following execution paths were successfully tested:
+
+| Environment | Status |
+|------------|--------|
+| Fresh Git clone | ✅ |
+| Docker deployment | ✅ |
+| Local Streamlit application | ✅ |
+| PostgreSQL + pgvector | ✅ |
+| Automatic chunk generation | ✅ |
+| Automatic embedding ingestion | ✅ |
+| Automatic monitoring table creation | ✅ |
+
+Both Docker and native local execution were validated using the instructions provided in this README.
 
 ---
 
@@ -643,39 +748,6 @@ docker compose stop postgres
 
 ---
 
-# 🚀 Reproducibility Guide
-
-CoreAssist was validated using a clean repository to ensure the project can be reproduced by other users.
-
-The following execution paths were successfully tested:
-
-| Environment | Status |
-|------------|--------|
-| Fresh Git clone | ✅ |
-| Docker deployment | ✅ |
-| Local Streamlit application | ✅ |
-| PostgreSQL + pgvector | ✅ |
-| Automatic chunk generation | ✅ |
-| Automatic embedding ingestion | ✅ |
-| Automatic monitoring table creation | ✅ |
-
-Both Docker and native local execution were reproduced successfully using the instructions provided in this README.
-
----
-
-## Validation Checklist
-
-After installation, verify the following:
-
-- ✅ Streamlit launches successfully.
-- ✅ PostgreSQL accepts connections.
-- ✅ Embeddings are loaded.
-- ✅ Questions return relevant answers.
-- ✅ Monitoring metrics are recorded.
-- ✅ User feedback is stored.
-
----
-
 # 🛠 Troubleshooting
 
 ## PostgreSQL Connection Timeout
@@ -693,6 +765,39 @@ docker compose up -d postgres
 ```
 
 ---
+
+## PostgreSQL Port 5432 Already in Use
+
+If Docker displays an error such as:
+
+```text
+Bind for 0.0.0.0:5432 failed: port is already allocated
+```
+
+another PostgreSQL service or Docker container is already using port `5432`.
+
+Check running containers:
+
+```bash
+docker ps
+```
+
+You can either:
+
+- Stop the existing PostgreSQL container, or
+- Change the host port mapping in `docker-compose.yml`:
+
+```yaml
+ports:
+  - "5433:5432"
+```
+
+After making the change, restart the containers:
+
+```bash
+docker compose down
+docker compose up --build
+```
 
 ## OpenAI API Connection
 
@@ -798,54 +903,6 @@ Future enhancements may include:
 - GPU inference support
 - Advanced retrieval analytics
 
----
-
-# 🙏 Acknowledgements
-
-This project would not have been possible without the following open-source technologies and communities:
-
-- 3GPP
-- OpenAI
-- PostgreSQL
-- pgvector
-- Streamlit
-- Hugging Face
-- Sentence Transformers
-- BAAI
-- Docker
-- OpenTelemetry
-- DataTalks.Club — LLM Zoomcamp
-
-Special thanks to the LLM Zoomcamp instructors and contributors for providing the foundation and inspiration for this project.
-
----
-
-# 📄 License
-
-This project is released under the **MIT License**.
-
-You are free to use, modify, and distribute this software under the terms of the MIT License.
-
-
----
-
-# 🌟 Project Highlights
-
-CoreAssist demonstrates a complete Retrieval-Augmented Generation (RAG) workflow for technical question answering using the official **3GPP TS 23.501 Release 19** specification.
-
-### Highlights
-
-- ✅ End-to-end Retrieval-Augmented Generation (RAG) pipeline
-- ✅ Semantic search using PostgreSQL + pgvector
-- ✅ Cross-encoder reranking for improved retrieval accuracy
-- ✅ Conversational query rewriting
-- ✅ GPT-4o-mini answer generation
-- ✅ Retrieval evaluation (Hit@k, MRR)
-- ✅ Automated LLM evaluation
-- ✅ OpenTelemetry monitoring
-- ✅ User feedback analytics
-- ✅ Docker deployment
-- ✅ Reproducible local and Docker execution
 
 ---
 
@@ -865,25 +922,6 @@ This project demonstrates practical implementation of modern AI engineering conc
 
 These concepts are commonly used in production AI assistants and enterprise knowledge retrieval systems.
 
----
-
-# 📈 Project Summary
-
-| Feature | Status |
-|----------|:------:|
-| Semantic Search | ✅ |
-| PostgreSQL + pgvector | ✅ |
-| Cross-Encoder Reranking | ✅ |
-| Query Rewriting | ✅ |
-| GPT-4o-mini | ✅ |
-| Multi-turn Conversations | ✅ |
-| Retrieval Evaluation | ✅ |
-| LLM Evaluation | ✅ |
-| Monitoring Dashboard | ✅ |
-| User Feedback | ✅ |
-| Docker Deployment | ✅ |
-| Local Development | ✅ |
-| Reproducible Setup | ✅ |
 
 ---
 
