@@ -730,11 +730,31 @@ uv run python -m scripts.create_monitoring_tables
 uv run streamlit run app/CoreAssist.py
 ```
 
-Open:
+The application will be available at:
 
 ```
 http://localhost:8501
 ```
+
+To stop the application, return to the terminal where Streamlit is running and press:
+
+```text
+Ctrl + C
+```
+
+When prompted:
+
+```text
+Terminate batch job (Y/N)?
+```
+
+Type:
+
+```text
+Y
+```
+
+and press **Enter**.
 
 ---
 
